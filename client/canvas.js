@@ -13,7 +13,13 @@ Template.canvas.onRendered(function () {
         }
         var doc = object.toObject();
         doc._id = Random.id();
+        doc.sessionId = Session.get('SessionId');
         Objects.insert(doc);
+    });
+    canvas.on('object:modified', function (event){
+        var object = event.target;
+        var doc = object.toObject();
+        Objects.update(event.target._id, {$set: doc})
     });
     canvas.isDrawingMode = Session.get('drawingMode');
 
@@ -24,18 +30,20 @@ Template.canvas.onRendered(function () {
     });
     Session.set('brushSize', 10);
 
-    Objects.find().observeChanges({
+    Objects.find({sessionId: Session.get('sessionId')}).observeChanges({
         added: function (id, object) {
             fabric.util.enlivenObjects([object], function ([object]) {
                 object._id = id;
                 canvas.add(object);
             });
         },
-        changed: function () {
-
+        changed: function (id, changed) {
+            var object = canvas.getObjectById(id);
+            object.set(changed);
+            canvas.renderAll();
         },
         removed: function () {
-
+            canvas.clear();
         }
     });
 
